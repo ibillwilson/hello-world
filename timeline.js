@@ -31,9 +31,8 @@ function timeline (step, que) {
     "use strict";
 
     const dt = step || Math.max(1, Number(step));
-    const inner = 4;
+    const inner = Math.max(1, Math.floor(Math.sqrt(que.length)));
     const outer = Math.floor(que.length / inner);
-    const pub = {};
 
     function some (batch) {
         let t = 0;
@@ -43,16 +42,21 @@ function timeline (step, que) {
         });
     }
 
-    pub.play = function () {
-        let wait = 0;
-        for (let o = 0; o < outer; o += 1) {
-            const batch = que.slice(o * inner, (o + 1) * inner);
-            setTimeout(some, wait, batch);
-            wait += 1 + dt * batch.reduce(function (sum, val) {return sum + val[0];}, 0);
+    const play = function () {
+        let wait = 0, scheduled = false;
+ 
+        if (que.length > 0) {
+            for (let o = 0; o < outer; o += 1) {
+                const batch = que.slice(o * inner, (o + 1) * inner);
+                setTimeout(some, wait, batch);
+                wait += dt * batch.reduce(function (sum, val) {return sum + val[0];}, 0);
+            }
+            if (outer * inner < que.length) {
+                setTimeout(some, wait, que.slice(outer * inner));
+            }
+            scheduled = true;
         }
-
-        setTimeout(some, wait, que.slice(outer * inner, que.length));
+        return scheduled;
     };
-
-    return pub;
+    return Object.freeze({play: play});
 }
